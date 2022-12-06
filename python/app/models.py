@@ -1,8 +1,8 @@
 from sqlalchemy import Column, ForeignKey, false
-from app import db
 from datetime import datetime
 from flask_login import UserMixin
 from app import login
+from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 
@@ -12,13 +12,8 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(32), index=True, nullable=False, unique=True)
     email = db.Column(db.String(32), index=True, nullable=False, unique=True)
     password_hash = db.Column(db.String(300), nullable=False)
-    full_name = db.Column(db.String(128))
-    address_line_one = db.Column(db.String(256))
-    address_line_two = db.Column(db.String(256))
-    city = db.Column(db.String(128))
-    state_province_region = db.Column(db.String(128))
-    zip_postal_code = db.Column(db.String(32))
-    country = db.Column(db.String(64))
+    access_token = db.Column(db.String(128))
+
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
