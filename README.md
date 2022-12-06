@@ -2,8 +2,12 @@
 
 start the react server for plaid api services:
 ```
-$ cd frontend
-$ npm run start
+cd frontend
+rm -rf node_modules
+rm -rf package-lock.json
+npm install react-scripts
+npm install
+npm run start
 ```
 start the main server by creating virtual evn:
 ```
