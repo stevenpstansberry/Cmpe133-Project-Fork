@@ -24,7 +24,7 @@
             <li class="nav-item text-nowrap">
                 {% if current_user.is_anonymous %}
                 <a class="nav-link" href="{{ url_for('login') }}">Login</a>
-                <a class="nav-link" href="{{ url_for('signup') }}">Signup</a>
+                <a class="nav-link" href="{{ url_for('signup') }}">SignUp</a>
                 {% else %}
                 <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
                 {% endif %}
@@ -43,16 +43,21 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            
-                         
+                            <a class="nav-link {% if title=='Home' %}active{% endif %}" href="{{ url_for('get_transactions') }}">
+                                Dashboard
+                                <!--<span class="sr-only">(current)</span>-->
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if title=='Home' %}active{% endif %}" href="{{ url_for('get_balance') }}">
+                                Profile
+                                <!--<span class="sr-only">(current)</span>-->
                             </a>
                         </li>
                     </ul>
                 </div>
             </nav>
             <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
-
-              <a href="http://localhost:3000/">Link Account</a>
 
                 {% block content %}{% endblock %}
             </main>

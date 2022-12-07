@@ -40,7 +40,7 @@ from plaid.model.transfer_create_idempotency_key import TransferCreateIdempotenc
 from plaid.model.transfer_user_address_in_request import TransferUserAddressInRequest
 from plaid.api import plaid_api
 from flask import Flask
-from flask import render_template
+from flask import render_template, session
 from flask import request
 from flask import jsonify
 from datetime import datetime
@@ -162,78 +162,22 @@ def info():
     })
 
 
-@app.route('/api/create_link_token_for_payment', methods=['POST'])
-def create_link_token_for_payment():
-    global payment_id
-    try:
-        request = PaymentInitiationRecipientCreateRequest(
-            name='John Doe',
-            bacs=RecipientBACSNullable(account='26207729', sort_code='560029'),
-            address=PaymentInitiationAddress(
-                street=['street name 999'],
-                city='city',
-                postal_code='99999',
-                country='GB'
-            )
-        )
-        response = client.payment_initiation_recipient_create(
-            request)
-        recipient_id = response['recipient_id']
-
-        request = PaymentInitiationPaymentCreateRequest(
-            recipient_id=recipient_id,
-            reference='TestPayment',
-            amount=PaymentAmount(
-                PaymentAmountCurrency('GBP'),
-                value=100.00
-            )
-        )
-        response = client.payment_initiation_payment_create(
-            request
-        )
-        pretty_print_response(response.to_dict())
-        
-        # We store the payment_id in memory for demo purposes - in production, store it in a secure
-        # persistent data store along with the Payment metadata, such as userId.
-        payment_id = response['payment_id']
-        
-        linkRequest = LinkTokenCreateRequest(
-            # The 'payment_initiation' product has to be the only element in the 'products' list.
-            products=[Products('payment_initiation')],
-            client_name='Plaid Test',
-            # Institutions from all listed countries will be shown.
-            country_codes=list(map(lambda x: CountryCode(x), PLAID_COUNTRY_CODES)),
-            language='en',
-            user=LinkTokenCreateRequestUser(
-                # This should correspond to a unique id for the current user.
-                # Typically, this will be a user ID number from your application.
-                # Personally identifiable information, such as an email address or phone number, should not be used here.
-                client_user_id=str(time.time())
-            ),
-            payment_initiation=LinkTokenCreateRequestPaymentInitiation(
-                payment_id=payment_id
-            )
-        )
-
-        if PLAID_REDIRECT_URI!=None:
-            linkRequest['redirect_uri']=PLAID_REDIRECT_URI
-        linkResponse = client.link_token_create(linkRequest)
-        pretty_print_response(linkResponse.to_dict())
-        return jsonify(linkResponse.to_dict())
-    except plaid.ApiException as e:
-        return json.loads(e.body)
 
 
+@login_required
 @app.route('/api/create_link_token', methods=['POST'])
 def create_link_token():
+
+   
     try:
+
         request = LinkTokenCreateRequest(
             products=products,
             client_name="Plaid Quickstart",
             country_codes=list(map(lambda x: CountryCode(x), PLAID_COUNTRY_CODES)),
             language='en',
             user=LinkTokenCreateRequestUser(
-                client_user_id=str(current_user.id)
+                client_user_id=str(time.time())
             )
         )
         if PLAID_REDIRECT_URI!=None:
@@ -281,14 +225,16 @@ def get_access_token():
 def get_auth():
     try:
        request = AuthGetRequest(
-            access_token=access_token
+            access_token='access-sandbox-2a02dd50-bfef-40d9-bfe9-25618b8d7e32'
         )
        response = client.auth_get(request)
        pretty_print_response(response.to_dict())
-       return jsonify(response.to_dict())
+       data =  jsonify(response.to_dict())
     except plaid.ApiException as e:
         error_response = format_error(e)
-        return jsonify(error_response)
+        data_error= jsonify(error_response)
+        
+    return render_template('profile.html', data = data)
 
 
 # Retrieve Transactions for an Item
@@ -305,6 +251,7 @@ def get_transactions():
     modified = []
     removed = [] # Removed transaction ids
     has_more = True
+    access_token ="access-sandbox-4ed8a41c-c53b-4f73-b7db-208634d45664"
     try:
         # Iterate through each page of new transaction updates for item
         while has_more:
@@ -324,12 +271,13 @@ def get_transactions():
 
         # Return the 8 most recent transactions
         latest_transactions = sorted(added, key=lambda t: t['date'])[-8:]
-        return jsonify({
-            'latest_transactions': latest_transactions})
+        
 
     except plaid.ApiException as e:
         error_response = format_error(e)
-        return jsonify(error_response)
+        data_error = jsonify(error_response)
+    
+    return render_template('dashboard.html', title='Sign Up',data = latest_transactions)
 
 
 # Retrieve Identity data for an Item
@@ -344,12 +292,12 @@ def get_identity():
         )
         response = client.identity_get(request)
         pretty_print_response(response.to_dict())
-        return jsonify(
+        data= jsonify(
             {'error': None, 'identity': response.to_dict()['accounts']})
     except plaid.ApiException as e:
         error_response = format_error(e)
-        return jsonify(error_response)
-
+        data= jsonify(error_response)
+        
 
 # Retrieve real-time balance data for each of an Item's accounts
 # https://plaid.com/docs/#balance
@@ -359,15 +307,15 @@ def get_identity():
 def get_balance():
     try:
         request = AccountsBalanceGetRequest(
-            access_token=access_token
+            access_token='access-sandbox-2a02dd50-bfef-40d9-bfe9-25618b8d7e32'
         )
         response = client.accounts_balance_get(request)
         pretty_print_response(response.to_dict())
-        return jsonify(response.to_dict())
+        data= jsonify(response.to_dict())
     except plaid.ApiException as e:
         error_response = format_error(e)
-        return jsonify(error_response)
-
+        data_e = jsonify(error_response)
+    return render_template('profile.html', data = response)
 
 # Retrieve an Item's accounts
 # https://plaid.com/docs/#accounts
@@ -377,14 +325,16 @@ def get_balance():
 def get_accounts():
     try:
         request = AccountsGetRequest(
-            access_token=access_token
+            access_token='access-sandbox-2a02dd50-bfef-40d9-bfe9-25618b8d7e32'
         )
         response = client.accounts_get(request)
         pretty_print_response(response.to_dict())
-        return jsonify(response.to_dict())
+        data =  jsonify(response.to_dict())
     except plaid.ApiException as e:
         error_response = format_error(e)
-        return jsonify(error_response)
+        data_error = jsonify(error_response)
+
+        return render_template('profile.html', data = data)
 
 
 # Create and then retrieve an Asset Report for one or more Items. Note that an
@@ -574,6 +524,7 @@ def login():
     Checks for the password and retieve the user profile for right user
     """
     if current_user.is_authenticated:
+        print(current_user.id)
         return redirect(url_for('index'))
     form = LoginForm()
     if form.validate_on_submit():
@@ -628,6 +579,11 @@ def logout():
 @app.route('/')
 def index():
     return render_template('base.html')
+
+
+@app.route('/profile')
+def profile():
+    return render_template('profile.html')
 
 
 
