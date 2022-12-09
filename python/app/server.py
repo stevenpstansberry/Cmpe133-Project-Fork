@@ -151,6 +151,91 @@ transfer_id = None
 item_id = None
 
 
+
+
+
+
+
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """
+    Manges the login for customer trying to login
+    Checks for the password and retieve the user profile for right user
+    """
+    if current_user.is_authenticated:
+        print(current_user.id)
+        return redirect(url_for('index'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user is None or not user.check_password(form.password.data):
+            flash('Invalid username or password')
+            return redirect(url_for('login'))
+        login_user(user)
+        return redirect(url_for('login'))
+    return render_template('login.html', title='Sign In', form=form)
+
+
+@app.route('/signUp', methods=['GET', 'POST'])
+def signup():
+    """
+    Manages the signup for Customer
+    Retrives info from the signup form and adds it to the database
+    """
+    if not current_user.is_authenticated:
+        form = SignUpForm(request.form)
+        if form.validate_on_submit():
+            username = form.username.data
+            email = form.email.data
+            password = form.password.data
+            password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+
+            try:
+                newuser = User(username=username, email=email, password_hash=password_hash)
+                db.session.add(newuser)
+                db.session.commit()
+                flash('Account created for user {}'.format(form.username.data))
+            except Exception:
+                flash('Username or email is taken')
+                return redirect(url_for('signup'))
+            return redirect(url_for('index'))
+    else:
+        return redirect(url_for('login'))
+    return render_template('signUp.html', title='Sign Up', form=form)
+
+
+@app.route('/logout')
+def logout():
+    """
+    Manges the logout response from user
+    Securely logs out the customer and redirects them to login page
+    """
+    logout_user()
+    return redirect(url_for('login'))
+
+
+
+@app.route('/')
+def index():
+    
+    return render_template('base.html', id = id)
+
+
+
+
+
+@app.route('/profile')
+def profile():
+    return render_template('profile.html')
+
+
+
+
+
+
+
 @app.route('/api/info', methods=['POST'])
 def info():
     global access_token
@@ -164,13 +249,10 @@ def info():
 
 
 
-@login_required
+
 @app.route('/api/create_link_token', methods=['POST'])
 def create_link_token():
-
-   
-    try:
-
+        print(current_user)
         request = LinkTokenCreateRequest(
             products=products,
             client_name="Plaid Quickstart",
@@ -185,14 +267,14 @@ def create_link_token():
     # create link token
         response = client.link_token_create(request)
         return jsonify(response.to_dict())
-    except plaid.ApiException as e:
-        return json.loads(e.body)
+    
 
 
 # Exchange token flow - exchange a Link public_token for
 # an API access_token
 # https://plaid.com/docs/#exchange-token-flow
 
+access_token = None
 
 @app.route('/api/set_access_token', methods=['POST'])
 def get_access_token():
@@ -207,14 +289,21 @@ def get_access_token():
         exchange_response = client.item_public_token_exchange(exchange_request)
         access_token = exchange_response['access_token']
         item_id = exchange_response['item_id']
-        current_user.access_token = exchange_response['access_token']
-        db.session.commit()
         if 'transfer' in PLAID_PRODUCTS:
             transfer_id = authorize_and_create_transfer(access_token)
 
         return jsonify(exchange_response.to_dict())
     except plaid.ApiException as e:
         return json.loads(e.body)
+
+
+@app.route('/token')
+def token():
+
+
+    current_user.access_token = access_token
+    db.session.commit()
+    return render_template('base.html', access_token= access_token)
 
 
 # Retrieve ACH or ETF account numbers for an Item
@@ -225,7 +314,7 @@ def get_access_token():
 def get_auth():
     try:
        request = AuthGetRequest(
-            access_token='access-sandbox-2a02dd50-bfef-40d9-bfe9-25618b8d7e32'
+            access_token=current_user.access_token
         )
        response = client.auth_get(request)
        pretty_print_response(response.to_dict())
@@ -251,7 +340,7 @@ def get_transactions():
     modified = []
     removed = [] # Removed transaction ids
     has_more = True
-    access_token ="access-sandbox-4ed8a41c-c53b-4f73-b7db-208634d45664"
+    access_token =current_user.access_token
     try:
         # Iterate through each page of new transaction updates for item
         while has_more:
@@ -307,7 +396,7 @@ def get_identity():
 def get_balance():
     try:
         request = AccountsBalanceGetRequest(
-            access_token='access-sandbox-2a02dd50-bfef-40d9-bfe9-25618b8d7e32'
+            access_token=current_user.access_token
         )
         response = client.accounts_balance_get(request)
         pretty_print_response(response.to_dict())
@@ -325,7 +414,7 @@ def get_balance():
 def get_accounts():
     try:
         request = AccountsGetRequest(
-            access_token='access-sandbox-2a02dd50-bfef-40d9-bfe9-25618b8d7e32'
+            access_token=access_token
         )
         response = client.accounts_get(request)
         pretty_print_response(response.to_dict())
@@ -457,38 +546,9 @@ def get_investments_transactions():
 # This functionality is only relevant for the ACH Transfer product.
 # Retrieve Transfer for a specified Transfer ID
 
-@app.route('/api/transfer', methods=['GET'])
-def transfer():
-    global transfer_id
-    try:
-        request = TransferGetRequest(transfer_id=transfer_id)
-        response = client.transfer_get(request)
-        pretty_print_response(response.to_dict())
-        return jsonify({'error': None, 'transfer': response['transfer'].to_dict()})
-    except plaid.ApiException as e:
-        error_response = format_error(e)
-        return jsonify(error_response)
 
 
-# This functionality is only relevant for the UK Payment Initiation product.
-# Retrieve Payment for a specified Payment ID
 
-
-@app.route('/api/payment', methods=['GET'])
-def payment():
-    global payment_id
-    try:
-        request = PaymentInitiationPaymentGetRequest(payment_id=payment_id)
-        response = client.payment_initiation_payment_get(request)
-        pretty_print_response(response.to_dict())
-        return jsonify({'error': None, 'payment': response.to_dict()})
-    except plaid.ApiException as e:
-        error_response = format_error(e)
-        return jsonify(error_response)
-
-
-# Retrieve high-level information about an Item
-# https://plaid.com/docs/#retrieve-item
 
 
 @app.route('/api/item', methods=['GET'])
@@ -510,106 +570,6 @@ def item():
         return jsonify(error_response)
 
 
-
-
-
-
-
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    """
-    Manges the login for customer trying to login
-    Checks for the password and retieve the user profile for right user
-    """
-    if current_user.is_authenticated:
-        print(current_user.id)
-        return redirect(url_for('index'))
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if user is None or not user.check_password(form.password.data):
-            flash('Invalid username or password')
-            return redirect(url_for('login'))
-        login_user(user)
-        return redirect(url_for('login'))
-    return render_template('login.html', title='Sign In', form=form)
-
-
-@app.route('/signUp', methods=['GET', 'POST'])
-def signup():
-    """
-    Manages the signup for Customer
-    Retrives info from the signup form and adds it to the database
-    """
-    if not current_user.is_authenticated:
-        form = SignUpForm(request.form)
-        if form.validate_on_submit():
-            username = form.username.data
-            email = form.email.data
-            password = form.password.data
-            password_hash = generate_password_hash(password, method='pbkdf2:sha256')
-
-            try:
-                newuser = User(username=username, email=email, password_hash=password_hash)
-                db.session.add(newuser)
-                db.session.commit()
-                flash('Account created for user {}'.format(form.username.data))
-            except Exception:
-                flash('Username or email is taken')
-                return redirect(url_for('signup'))
-            return redirect(url_for('index'))
-    else:
-        return redirect(url_for('login'))
-    return render_template('signUp.html', title='Sign Up', form=form)
-
-
-@app.route('/logout')
-def logout():
-    """
-    Manges the logout response from user
-    Securely logs out the customer and redirects them to login page
-    """
-    logout_user()
-    return redirect(url_for('login'))
-
-
-
-@app.route('/')
-def index():
-    return render_template('base.html')
-
-
-@app.route('/profile')
-def profile():
-    return render_template('profile.html')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def pretty_print_response(response):
   print(json.dumps(response, indent=2, sort_keys=True, default=str))
 
@@ -617,69 +577,3 @@ def format_error(e):
     response = json.loads(e.body)
     return {'error': {'status_code': e.status, 'display_message':
                       response['error_message'], 'error_code': response['error_code'], 'error_type': response['error_type']}}
-
-# This is a helper function to authorize and create a Transfer after successful
-# exchange of a public_token for an access_token. The transfer_id is then used
-# to obtain the data about that particular Transfer.
-def authorize_and_create_transfer(access_token):
-    try:
-        # We call /accounts/get to obtain first account_id - in production,
-        # account_id's should be persisted in a data store and retrieved
-        # from there.
-        request = AccountsGetRequest(access_token=access_token)
-        response = client.accounts_get(request)
-        account_id = response['accounts'][0]['account_id']
-
-        request = TransferAuthorizationCreateRequest(
-            access_token=access_token,
-            account_id=account_id,
-            type=TransferType('credit'),
-            network=TransferNetwork('ach'),
-            amount='1.34',
-            ach_class=ACHClass('ppd'),
-            user=TransferUserInRequest(
-                legal_name='FirstName LastName',
-                email_address='foobar@email.com',
-                address=TransferUserAddressInRequest(
-                    street='123 Main St.',
-                    city='San Francisco',
-                    region='CA',
-                    postal_code='94053',
-                    country='US'
-                ),
-            ),
-        )
-        response = client.transfer_authorization_create(request)
-        pretty_print_response(response)
-        authorization_id = response['authorization']['id']
-
-        request = TransferCreateRequest(
-            idempotency_key=TransferCreateIdempotencyKey('1223abc456xyz7890001'),
-            access_token=access_token,
-            account_id=account_id,
-            authorization_id=authorization_id,
-            type=TransferType('credit'),
-            network=TransferNetwork('ach'),
-            amount='1.34',
-            description='Payment',
-            ach_class=ACHClass('ppd'),
-            user=TransferUserInRequest(
-                legal_name='FirstName LastName',
-                email_address='foobar@email.com',
-                address=TransferUserAddressInRequest(
-                    street='123 Main St.',
-                    city='San Francisco',
-                    region='CA',
-                    postal_code='94053',
-                    country='US'
-                ),
-            ),
-        )
-        response = client.transfer_create(request)
-        pretty_print_response(response)
-        return response['transfer']['id']
-    except plaid.ApiException as e:
-        error_response = format_error(e)
-        return jsonify(error_response)
-
-
