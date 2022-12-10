@@ -186,12 +186,13 @@ def addreceipt():
         numberOfItems = form.numberOfItems.data
         description = form.description.data
         category = request.form.get('category')
-        image_1 = photos.save(request.files.get('image_1'), secrets.token_hex(10) + ".")
+        image_1 = photos.save(request.files.get('image_1'))
         uploadreceipt = AddReceipt(name=name,merchant=merchant,dateOfPurchase=dateOfPurchase,returnDate=returnDate,
                                 totalPrice=totalPrice,numberOfItems=numberOfItems,description=description,
                                 category_id = category, image_1=image_1)
         db.session.add(uploadreceipt)
         flash(f'Your receipt has been added!', 'success')
+        db.session.commit()
         return redirect(url_for('addreceipt'))
     return render_template('receipts/addReceipt.html',title = "Add Receipt Page", form = form,categories = categories)
 
@@ -201,7 +202,7 @@ def library():
     Displays the user's uploaded receipts and retrieves values associated with receipts from database
     """
     receipts = AddReceipt.query.all()
-    return render_template ('receipts/library.html', title = "Library", receipts = receipts)
+    return render_template ('library.html', title = "Library", receipts = receipts)
 
 
 @app.route('/login', methods=['GET', 'POST'])
