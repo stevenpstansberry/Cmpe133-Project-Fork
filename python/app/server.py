@@ -170,6 +170,20 @@ def addCategory():
 
     return render_template('receipts/addCategory.html',categories = 'categories')
 
+@app.route('/updateCategory/<int:id>', methods = ['GET','POST'])
+def updateCategory(id):
+    """
+    Allows the user to modify or delete categories within the database
+    """
+    updateCategory = Category.query.get_or_404(id)
+    category = request.form.get('category')
+    if request.method =='POST':
+        updateCategory.name = category
+        flash(f'The category has been updated!','success')
+        db.session.commit()
+        return redirect(url_for('updateCategory'))
+    return render_template('receipts/updateCategory.html', title = 'Update Category page', updateCategory = updateCategory)
+
 @app.route('/addReceipt', methods = ['GET','POST'])
 def addreceipt():
     """
