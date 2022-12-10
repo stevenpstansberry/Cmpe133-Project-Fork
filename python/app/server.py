@@ -184,6 +184,19 @@ def updateCategory(id):
         return redirect(url_for('updateCategory/<int:id>'))
     return render_template('receipts/updateCategory.html', title = 'Update Category page', updateCategory = updateCategory)
 
+@app.route('/deleteCategory/<int:id>', method ='POST')
+def deleteCategory(id):
+    """
+        Allows the user to delete categories already in the database.
+        """
+    category = Category.query.get_or_404(id)
+    if request.method == 'POST':
+        db.session.delete(category)
+        db.session.commit()
+        flash(f'The category has been deleted!', ' success')
+        return redirect(url_for('library'))
+
+
 @app.route('/addReceipt', methods = ['GET','POST'])
 def addreceipt():
     """
@@ -241,10 +254,19 @@ def updateReceipt(id):
 
     form = Addreceipt(request.form)
 
+    return render_template ('receipts/updateCategory.html', form = form, categories = categories, receipt =receipt)
+
+@app.route('deleteReceipt/<int:id>', methods = ('POST'))
+def deleteReceipt(id):
+    receipt = AddReceipt.query.get_or_404(id)
+    if request.method == 'POST':
+        db.session.delete(receipt)
+        db.session.commit()
+        flash(f'The receipt has been deleted!')
+        return redirect(url_for('library'))
+    return redirect(url_for('library'))
 
 
-
-    return render_template("Receipts/updateReceipt.html", form = form,categories = categories,receipt = receipt)
 
 @app.route('/library', methods=['GET','POST'])
 def library():
