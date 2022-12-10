@@ -1,0 +1,15 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h1>Accounts</h1> 
+<br>
+{{data.accounts[0].name}}
+<br>
+Account Balance : {{data.accounts[0].balances.available}}
+<br>
+<br>
+
+<a href="http://localhost:3000/">Link Another Account</a>
+
+
+{% endblock %}
