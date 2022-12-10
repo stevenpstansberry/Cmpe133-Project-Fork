@@ -60,6 +60,7 @@ from datetime import datetime
 import secrets
 from flask import render_template, redirect, url_for, request, flash, session, current_app
 from flask_login import current_user, login_user, logout_user, login_required
+from flask_mail import Mail, Message
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
@@ -184,7 +185,7 @@ def updateCategory(id):
         return redirect(url_for('updateCategory/<int:id>'))
     return render_template('receipts/updateCategory.html', title = 'Update Category page', updateCategory = updateCategory)
 
-@app.route('/deleteCategory/<int:id>', method ='POST')
+@app.route('/deleteCategory/<int:id>', methods =['POST'])
 def deleteCategory(id):
     """
         Allows the user to delete categories already in the database.
@@ -256,8 +257,11 @@ def updateReceipt(id):
 
     return render_template ('receipts/updateCategory.html', form = form, categories = categories, receipt =receipt)
 
-@app.route('deleteReceipt/<int:id>', methods = ('POST'))
+@app.route('/deleteReceipt/<int:id>', methods = ['POST'])
 def deleteReceipt(id):
+    """
+    Allows the delete to receipts already in the database.
+    """
     receipt = AddReceipt.query.get_or_404(id)
     if request.method == 'POST':
         db.session.delete(receipt)
@@ -275,6 +279,13 @@ def library():
     """
     receipts = AddReceipt.query.all()
     return render_template ('library.html', title = "Library", receipts = receipts)
+
+@app.route('/support', methods= ['GET','POST'])
+def support():
+    """
+    Allows the user to access support for any issues they may have.
+    """
+
 
 
 @app.route('/login', methods=['GET', 'POST'])
