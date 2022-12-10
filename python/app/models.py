@@ -2,9 +2,13 @@ from sqlalchemy import Column, ForeignKey, false
 from datetime import datetime
 from flask_login import UserMixin
 from app import login
-from app import db
+from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
+
+
+
+
 
 
 class User(UserMixin, db.Model):
@@ -28,6 +32,8 @@ class User(UserMixin, db.Model):
 @login.user_loader
 def load_user(id):
     return User.query.get(int(id))
+
+
 
 
 db.create_all()

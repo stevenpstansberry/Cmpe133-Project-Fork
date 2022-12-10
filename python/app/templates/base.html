@@ -7,7 +7,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>{{ title }} - Recetify</title>
+    <title>{{ title }} - Receiptify</title>
 
     <!-- Bootstrap core CSS -->
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
@@ -18,7 +18,7 @@
 
 <body>
     <nav class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0">
-        <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="#">Recetify</a>
+        <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="/">Receiptify</a>
         <p class="align-middle h5 pl-4 text-white">Welcome, {{ current_user.username }}!</p>
         <ul class="navbar-nav px-3">
             <li class="nav-item text-nowrap">
@@ -79,7 +79,42 @@
                                 <!--<span class="sr-only">(current)</span>-->
                             </a>
                         </li>
+
+
+
+
+
+
+
+
+
+                         <li class="nav-item">
+                            <a href="/addReceipt">Upload Receipts</a>
+
+                        </li>
+
+
+
+
+                         <li class="nav-item">
+                            <a href="/library">Library</a>
+                        </li>
+
+
+
+
+                        <li class="nav-item">
+                            <a href="/addCategory">Add a category!</a>
+                        </li>
                     </ul>
+
+
+
+
+
+
+
+
                     {% endif %}
                 </div>
             </nav>
