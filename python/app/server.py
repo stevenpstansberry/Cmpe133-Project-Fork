@@ -181,7 +181,7 @@ def updateCategory(id):
         updateCategory.name = category
         flash(f'The category has been updated!','success')
         db.session.commit()
-        return redirect(url_for('updateCategory'))
+        return redirect(url_for('updateCategory/<int:id>'))
     return render_template('receipts/updateCategory.html', title = 'Update Category page', updateCategory = updateCategory)
 
 @app.route('/addReceipt', methods = ['GET','POST'])
@@ -209,6 +209,42 @@ def addreceipt():
         db.session.commit()
         return redirect(url_for('addreceipt'))
     return render_template('receipts/addReceipt.html',title = "Add Receipt Page", form = form,categories = categories)
+
+@app.route('/updateReceipt/<int:id>', methods = ('GET','POST'))
+def updateReceipt(id):
+    """
+    Allows the user to modify receipt information already in the database.
+    """
+    categories = Category.query.all()
+    receipt = AddReceipt.query.get_or_404(id)
+    category = request.form.get('category')
+    form = Addreceipt(request.form)
+    if request.method =='POST':
+        receipt.name = form.name.data
+        receipt.merchant = form.merchant.data
+        receipt.category_id = category
+        receipt.dateOfPurchase = form.dateOfPurchase.data
+        receipt.returnDate = form.returnDate.data
+        receipt.totalPrice = form.totalPrice.data
+        form.numberOfItems = form.totalPrice.data
+        form.description = form.description.data
+        db.session.commit()
+        flash(f'Receipt updated!','success')
+        return redirect(url_for('updateReceipt/<int:id>'))
+    form.name.data = receipt.name
+    form.merchant.data = receipt.merchant
+    form.dateOfPurchase.data = receipt.dateOfPurchase
+    form.returnDate.data = receipt.returnDate
+    form.totalPrice.data = receipt.totalPrice
+    form.numberOfItems.data = receipt.numberOfItems
+    form.description.data = receipt.description
+
+    form = Addreceipt(request.form)
+
+
+
+
+    return render_template("Receipts/updateReceipt.html", form = form,categories = categories,receipt = receipt)
 
 @app.route('/library', methods=['GET','POST'])
 def library():
