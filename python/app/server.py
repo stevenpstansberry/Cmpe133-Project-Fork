@@ -73,6 +73,11 @@ from app.models import User
 load_dotenv()
 
 
+########################################################################
+################### PLAID API SETUP ####################################
+########################################################################
+
+
 
 
 # Fill in your Plaid API keys - https://dashboard.plaid.com/account/keys
@@ -151,11 +156,9 @@ transfer_id = None
 item_id = None
 
 
-
-
-
-
-
+########################################################################
+################### ALL APP ROUTES  ####################################
+########################################################################
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -359,7 +362,7 @@ def get_transactions():
             pretty_print_response(response)
 
         # Return the 8 most recent transactions
-        latest_transactions = sorted(added, key=lambda t: t['date'])[-8:]
+        latest_transactions = sorted(added, key=lambda t: t['date'])[-20:]
         
 
     except plaid.ApiException as e:
@@ -405,25 +408,22 @@ def get_balance():
         error_response = format_error(e)
         data_e = jsonify(error_response)
     return render_template('profile.html', data = response)
-
 # Retrieve an Item's accounts
 # https://plaid.com/docs/#accounts
 
 
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
-    try:
-        request = AccountsGetRequest(
-            access_token=access_token
-        )
-        response = client.accounts_get(request)
-        pretty_print_response(response.to_dict())
-        data =  jsonify(response.to_dict())
-    except plaid.ApiException as e:
-        error_response = format_error(e)
-        data_error = jsonify(error_response)
+    
+    request = AccountsGetRequest(
+    access_token=current_user.access_token
+    )
+    response = client.accounts_get(request)
+    pretty_print_response(response.to_dict())
+    data =  jsonify(response.to_dict())
+    
 
-        return render_template('profile.html', data = data)
+    return render_template('index.html', data = response)
 
 
 # Create and then retrieve an Asset Report for one or more Items. Note that an
@@ -542,13 +542,6 @@ def get_investments_transactions():
     except plaid.ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
-
-# This functionality is only relevant for the ACH Transfer product.
-# Retrieve Transfer for a specified Transfer ID
-
-
-
-
 
 
 @app.route('/api/item', methods=['GET'])

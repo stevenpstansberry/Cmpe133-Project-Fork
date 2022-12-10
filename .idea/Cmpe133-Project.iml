@@ -13,6 +13,7 @@
     <option name="TEMPLATE_FOLDERS">
       <list>
         <option value="$MODULE_DIR$/frontend/node_modules/plaid/templates" />
+        <option value="$MODULE_DIR$/python/app/templates" />
       </list>
     </option>
   </component>
