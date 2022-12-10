@@ -127,8 +127,9 @@ const Header = () => {
             <div className={styles.itemAccessContainer}>
               <a href="http://127.0.0.1:8000/token" target="_blank">
           <div className={styles.linkButton}>
+            <h5>Account has been authorized. </h5>
               <Button >
-                Back to Home
+               Back to Home
               </Button>
             </div>
         </a>

@@ -14,36 +14,37 @@
 <table class="table table-striped">
     <thead>
       <tr>
-        <th scope="col">Merchant Name</th>
-        <th scope="col">Date</th>
-        <th scope="col">Category</th>
-        <th scope="col">Category Type</th>
-        
-        <th scope="col">Amount</th>
+        <th scope="col">Account Name</th>
+        <th scope="col">Balance</th>
+        <th scope="col">Account Type</th>
+
+
+
       </tr>
     </thead>
-    {% for d in data %}
+
     <tbody>
 
-        
+
       <tr>
-        <td>{{d.merchant_name}}</td>
-        
-        <td>{{d.date}}</td>
-        
-        <td>{{d.category[0]}}</td>
-        <td>{{d.category[1]}}</td>
-        <td>${{ d.amount }}</td>
-    
-        
-        
-        
+        <td>{{data.accounts[0].official_name}}</td>
+
+        <td>{{data.accounts[0].balances.available}}</td>
+
+        <td>{{data.accounts[0].subtype}}</td>
+
+
+
+
+
       </tr>
     </tbody>
-    {% endfor %}
+
   </table>
 
-
+    <button type="button" class="btn btn-dark">
+    <a href="http://localhost:3000/">Link Another Account</a>
+    </button>
 
 
 
