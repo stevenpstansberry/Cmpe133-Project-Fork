@@ -55,18 +55,22 @@ from dotenv import load_dotenv
 from werkzeug.wrappers import response
 
 
+
 from datetime import datetime
 import secrets
 from flask import render_template, redirect, url_for, request, flash, session, current_app
 from flask_login import current_user, login_user, logout_user, login_required
+from flask_mail import Mail, Message
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
 from app import app as app
-from app import db
+from app import db, photos
 from app.forms import  LoginForm, SignUpForm
 
-from app.models import User
+from .models import User
+from .ReceiptDB import Category, AddReceipt
+from .forms import Addreceipt
 
 
 
@@ -156,9 +160,143 @@ transfer_id = None
 item_id = None
 
 
+
+@app.route('/addCategory', methods = ['GET','POST'])
+def addCategory():
+    """
+    Allows the customer to add categories to manage their receipts.
+    Updates Category database to include user-inputted String
+    """
+    if request.method =="POST":
+        getCategory = request.form.get('category')
+        category = Category(name=getCategory)
+        db.session.add(category)
+        flash(f'You have added the category {getCategory} !', 'success')
+        db.session.commit()
+        return redirect(url_for('addCategory'))
+
+    return render_template('receipts/addCategory.html',categories = 'categories')
+
+@app.route('/updateCategory/<int:id>', methods = ['GET','POST'])
+def updateCategory(id):
+    """
+    Allows the user to modify or delete categories within the database
+    """
+    updateCategory = Category.query.get_or_404(id)
+    category = request.form.get('category')
+    if request.method =='POST':
+        updateCategory.name = category
+        flash(f'The category has been updated!','success')
+        db.session.commit()
+        return redirect(url_for('updateCategory/<int:id>'))
+    return render_template('receipts/updateCategory.html', title = 'Update Category page', updateCategory = updateCategory)
+
+@app.route('/deleteCategory/<int:id>', methods =['POST'])
+def deleteCategory(id):
+    """
+        Allows the user to delete categories already in the database.
+        """
+    category = Category.query.get_or_404(id)
+    if request.method == 'POST':
+        db.session.delete(category)
+        db.session.commit()
+        flash(f'The category has been deleted!', ' success')
+        return redirect(url_for('library'))
+
+
+@app.route('/addReceipt', methods = ['GET','POST'])
+def addreceipt():
+    """
+    Allows the user to add a receipt to the database.
+    """
+    categories = Category.query.all()
+    form = Addreceipt(request.form)
+    if request.method =='POST':
+        name = form.name.data
+        merchant = form.merchant.data
+        dateOfPurchase = form.dateOfPurchase.data
+        returnDate = form.returnDate.data
+        totalPrice = form.totalPrice.data
+        numberOfItems = form.numberOfItems.data
+        description = form.description.data
+        category = request.form.get('category')
+        image_1 = photos.save(request.files.get('image_1'))
+        uploadreceipt = AddReceipt(name=name,merchant=merchant,dateOfPurchase=dateOfPurchase,returnDate=returnDate,
+                                totalPrice=totalPrice,numberOfItems=numberOfItems,description=description,
+                                category_id = category, image_1=image_1)
+        db.session.add(uploadreceipt)
+        flash(f'Your receipt has been added!', 'success')
+        db.session.commit()
+        return redirect(url_for('addreceipt'))
+    return render_template('receipts/addReceipt.html',title = "Add Receipt Page", form = form,categories = categories)
+
+@app.route('/updateReceipt/<int:id>', methods = ('GET','POST'))
+def updateReceipt(id):
+    """
+    Allows the user to modify receipt information already in the database.
+    """
+    categories = Category.query.all()
+    receipt = AddReceipt.query.get_or_404(id)
+    category = request.form.get('category')
+    form = Addreceipt(request.form)
+    if request.method =='POST':
+        receipt.name = form.name.data
+        receipt.merchant = form.merchant.data
+        receipt.category_id = category
+        receipt.dateOfPurchase = form.dateOfPurchase.data
+        receipt.returnDate = form.returnDate.data
+        receipt.totalPrice = form.totalPrice.data
+        form.numberOfItems = form.totalPrice.data
+        form.description = form.description.data
+        db.session.commit()
+        flash(f'Receipt updated!','success')
+        return redirect(url_for('updateReceipt/<int:id>'))
+    form.name.data = receipt.name
+    form.merchant.data = receipt.merchant
+    form.dateOfPurchase.data = receipt.dateOfPurchase
+    form.returnDate.data = receipt.returnDate
+    form.totalPrice.data = receipt.totalPrice
+    form.numberOfItems.data = receipt.numberOfItems
+    form.description.data = receipt.description
+
+    form = Addreceipt(request.form)
+
+    return render_template ('receipts/updateCategory.html', form = form, categories = categories, receipt =receipt)
+
+@app.route('/deleteReceipt/<int:id>', methods = ['POST'])
+def deleteReceipt(id):
+    """
+    Allows the delete to receipts already in the database.
+    """
+    receipt = AddReceipt.query.get_or_404(id)
+    if request.method == 'POST':
+        db.session.delete(receipt)
+        db.session.commit()
+        flash(f'The receipt has been deleted!')
+        return redirect(url_for('library'))
+    return redirect(url_for('library'))
+
+
+
+@app.route('/library', methods=['GET','POST'])
+def library():
+    """
+    Displays the user's uploaded receipts and retrieves values associated with receipts from database
+    """
+    receipts = AddReceipt.query.all()
+    return render_template ('library.html', title = "Library", receipts = receipts)
+
+@app.route('/support', methods= ['GET','POST'])
+def support():
+    """
+    Allows the user to access support for any issues they may have.
+    """
+
+
 ########################################################################
 ################### ALL APP ROUTES  ####################################
 ########################################################################
+
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -185,7 +323,7 @@ def login():
 def signup():
     """
     Manages the signup for Customer
-    Retrives info from the signup form and adds it to the database
+    Retrieves info from the signup form and adds it to the database
     """
     if not current_user.is_authenticated:
         form = SignUpForm(request.form)
